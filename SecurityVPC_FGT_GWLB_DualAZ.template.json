@@ -1,0 +1,2408 @@
+{
+	"AWSTemplateFormatVersion": "2010-09-09",
+	"Description": "(v2.0) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
+	"Metadata": {
+		"AWS::CloudFormation::Interface": {
+			"ParameterGroups": [
+				{
+					"Label": {
+						"default": "VPC Configuration"
+					},
+					"Parameters": [
+						"VPCCIDR",
+						"AZForSubnet1",
+						"AZForSubnet2",
+						"PublicSubnet1",
+						"PublicSubnet2",
+						"PrivateSubnet1",
+						"PrivateSubnet2",
+						"GwlbSubnet1",
+						"GwlbSubnet2",
+						"TgwAttachSubnets",
+						"TgwAttachSubnet1",
+						"TgwAttachSubnet2"
+					]
+				},
+				{
+					"Label": {
+						"default": "TGW Configuration"
+					},
+					"Parameters": [
+						"TgwCreation",
+						"TgwExisting",
+						"TgwExistingSecurityTgwRtb",
+						"TgwExistingSpokeTgwRtb",
+						"TgwExistingSpokeTgwRtbRoute"
+					]
+				},
+				{
+					"Label": {
+						"default": "FortiGate Instance Configuration"
+					},
+					"Parameters": [
+						"InstanceType",
+						"CIDRForInstanceAccess",
+						"KeyPair",
+						"InitS3Bucket",
+						"LicenseType",
+						"FortiGate1LicenseFile",
+						"FortiGate2LicenseFile"
+					]
+				}
+			]
+		}
+	},
+	"Parameters": {
+		"VPCCIDR": {
+			"Type": "String",
+			"Default": "10.0.0.0/16",
+			"Description": "Provide a network CIDR for the VPC"
+		},
+		"AZForSubnet1": {
+			"Type": "AWS::EC2::AvailabilityZone::Name",
+			"Description": "Select an Availability Zone for the first set of subnets"
+		},
+		"AZForSubnet2": {
+			"Type": "AWS::EC2::AvailabilityZone::Name",
+			"Description": "Select an Availability Zone for the second set of subnets"
+		},
+		"PublicSubnet1": {
+			"Type": "String",
+			"Default": "10.0.1.0/24",
+			"Description": "Provide a network CIDR for PublicSubnet1"
+		},
+		"PrivateSubnet1": {
+			"Type": "String",
+			"Default": "10.0.3.0/24",
+			"Description": "Provide a network CIDR for PrivateSubnet1"
+		},
+		"GwlbSubnet1": {
+			"Type": "String",
+			"Default": "10.0.5.0/24",
+			"Description": "Provide a network CIDR for GwlbSubnet1"
+		},
+		"PublicSubnet2": {
+			"Type": "String",
+			"Default": "10.0.2.0/24",
+			"Description": "Provide a network CIDR for PublicSubnet2"
+		},
+		"PrivateSubnet2": {
+			"Type": "String",
+			"Default": "10.0.4.0/24",
+			"Description": "Provide a network CIDR for PrivateSubnet2"
+		},
+		"GwlbSubnet2": {
+			"Type": "String",
+			"Default": "10.0.6.0/24",
+			"Description": "Provide a network CIDR for GwlbSubnet2"
+		},
+		"TgwAttachSubnets": {
+			"Type": "String",
+			"Description": "Select Yes if you plan to attach this VPC to Transit GW with a VPC attachment, otherwise select No",
+			"AllowedValues": [
+				"Yes",
+				"No"
+			]
+		},
+		"TgwAttachSubnet1": {
+			"Type": "String",
+			"Default": "10.0.7.0/24",
+			"Description": "[Ignore if TgwAttachSubnets is No] Provide a network CIDR for TgwAttachSubnet1"
+		},
+		"TgwAttachSubnet2": {
+			"Type": "String",
+			"Default": "10.0.8.0/24",
+			"Description": "Provide a network CIDR for TgwAttachSubnet2"
+		},
+		"TgwCreation": {
+			"Type": "String",
+			"Description": "Select Yes if you want to deploy a new Transit GW and two Transit GW Route Tables",
+			"AllowedValues": [
+				"Yes",
+				"No"
+			]
+		},
+		"TgwExisting": {
+			"Type": "String",
+			"Description": "[Leave blank if an existing TGW will not be used] If you are using an existing Transit GW, provide the Transit GW ID to create VPC routes to reach it"
+		},
+		"TgwExistingSecurityTgwRtb": {
+			"Type": "String",
+			"Description": "[Leave blank if an existing TGW will not be used] If you are using an existing Transit GW, provide the Transit GW RouteTable ID for the security VPC to associate to"
+		},
+		"TgwExistingSpokeTgwRtb": {
+			"Type": "String",
+			"Description": "[Leave blank if an existing TGW will not be used] If you are using an existing Transit GW, provide the Transit GW RouteTable ID that your spoke VPCs are associated with"
+		},
+		"TgwExistingSpokeTgwRtbRoute": {
+			"Type": "String",
+			"Default": "10.0.0.0/8",
+			"Description": "[Ignore if an existing TGW will not be used] If you are using an existing Transit GW, provide a network CIDR to create a route in your Transit GW RouteTable that your spoke VPCs are associated with"
+		},
+		"InstanceType": {
+			"Type": "String",
+			"Default": "c5.xlarge",
+			"Description": "Select the instance type for the FortiGates",
+			"AllowedValues": [
+				"c5.large",
+				"c5.xlarge",
+				"c5.2xlarge",
+				"c5.4xlarge",
+				"c5.9xlarge",
+				"c5.18xlarge",
+				"c5n.large",
+				"c5n.xlarge",
+				"c5n.2xlarge",
+				"c5n.4xlarge",
+				"c5n.9xlarge",
+				"c5n.18xlarge"
+			]
+		},
+		"CIDRForInstanceAccess": {
+			"Type": "String",
+			"Default": "0.0.0.0/0",
+			"Description": "Provide a network CIDR from which the FortiGate instances will be accessed"
+		},
+		"KeyPair": {
+			"Type": "AWS::EC2::KeyPair::KeyName",
+			"Description": "Select a keypair to associate with the FortiGates"
+		},
+		"InitS3Bucket": {
+			"Type": "String",
+			"MinLength": "1",
+			"Description": "Provide the Init S3 Bucket name, where your config files will be created  *** the bucket should exist in the same region as this deployment for successful bootstrapping ***"
+		},
+		"LicenseType": {
+			"Type": "String",
+			"Description": "Select the license type for the FortiGates",
+			"AllowedValues": [
+				"PAYG",
+				"BYOL"
+			]
+		},
+		"FortiGate1LicenseFile": {
+			"Type": "String",
+			"Description": "[BYOL Only, leave blank for PAYG] Provide the name of the BYOL license file in the Init S3 Bucket for FortiGate1 (ie fgt1.lic or prefix/fgt1.lic)"
+		},
+		"FortiGate2LicenseFile": {
+			"Type": "String",
+			"Description": "[BYOL Only, leave blank for PAYG] Provide the name of the BYOL license file in the Init S3 Bucket for FortiGate2 (ie fgt2.lic or prefix/fgt2.lic)"
+		}
+	},
+	"Conditions": {
+		"CreateTgwAttachSubnets": {
+			"Fn::Equals": [
+				{
+					"Ref": "TgwAttachSubnets"
+				},
+				"Yes"
+			]
+		},
+		"CreateTgw": {
+			"Fn::Equals": [
+				{
+					"Ref": "TgwCreation"
+				},
+				"Yes"
+			]
+		},
+		"ExistingTGW": {
+			"Fn::Not": [
+				{
+					"Fn::Equals": [
+						{
+							"Ref": "TgwExisting"
+						},
+						""
+					]
+				}
+			]
+		},
+		"LicenseTypeBYOL": {
+			"Fn::Equals": [
+				{
+					"Ref": "LicenseType"
+				},
+				"BYOL"
+			]
+		}
+	},
+	"Resources": {
+		"VPCID": {
+			"Type": "AWS::EC2::VPC",
+			"Properties": {
+				"CidrBlock": {
+					"Ref": "VPCCIDR"
+				},
+				"EnableDnsSupport": "true",
+				"EnableDnsHostnames": "true",
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"VPC"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PublicSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "PublicSubnet1"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PublicSubnet1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PrivateSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "PrivateSubnet1"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PrivateSubnet1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "GwlbSubnet1"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbSubnet1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PublicSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "PublicSubnet2"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PublicSubnet2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PrivateSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "PrivateSubnet2"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PrivateSubnet2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "GwlbSubnet2"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbSubnet2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttachSub1": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateTgwAttachSubnets",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "TgwAttachSubnet1"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttachSubnet1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttachSub2": {
+			"Type": "AWS::EC2::Subnet",
+			"Condition": "CreateTgwAttachSubnets",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"CidrBlock": {
+					"Ref": "TgwAttachSubnet2"
+				},
+				"AvailabilityZone": {
+					"Ref": "AZForSubnet2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttachSubnet2"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"InternetGateway": {
+			"Type": "AWS::EC2::InternetGateway",
+			"Properties": {
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"IGW"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"AttachGateway": {
+			"Type": "AWS::EC2::VPCGatewayAttachment",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"InternetGatewayId": {
+					"Ref": "InternetGateway"
+				}
+			}
+		},
+		"Gwlb": {
+			"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+			"Properties": {
+				"Name": "GwlbName",
+				"Type": "gateway",
+				"Subnets": [
+					{
+						"Ref": "GwlbSub1"
+					},
+					{
+						"Ref": "GwlbSub2"
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"Gwlb"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TargetGroup": {
+			"Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+			"Properties": {
+				"Name": "TargetGroupName",
+				"Port": 6081,
+				"Protocol": "GENEVE",
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"HealthCheckPort": "541",
+				"HealthCheckProtocol": "TCP",
+				"TargetType": "instance",
+				"Targets": [
+					{
+						"Id": {
+							"Ref": "Fgt1"
+						},
+						"Port": 6081
+					},
+					{
+						"Id": {
+							"Ref": "Fgt2"
+						},
+						"Port": 6081
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"tg-geneve"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"Listener": {
+			"Type": "AWS::ElasticLoadBalancingV2::Listener",
+			"Properties": {
+				"DefaultActions": [
+					{
+						"Type": "forward",
+						"TargetGroupArn": {
+							"Ref": "TargetGroup"
+						}
+					}
+				],
+				"LoadBalancerArn": {
+					"Ref": "Gwlb"
+				}
+			}
+		},
+		"VpcEndpointService": {
+			"Type": "AWS::EC2::VPCEndpointService",
+			"Properties": {
+				"AcceptanceRequired": "false",
+				"GatewayLoadBalancerArns": [
+					{
+						"Ref": "Gwlb"
+					}
+				]
+			}
+		},
+		"LambdaExecutionRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"RoleName": {
+					"Fn::Join": [
+						"-",
+						[
+							{
+								"Ref": "AWS::StackName"
+							},
+							"LambdaExecutionRole"
+						]
+					]
+				},
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"lambda.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "root",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"ec2:DescribeImages",
+										"ec2:DescribeNetworkInterfaces",
+										"ec2:DescribeTransitGatewayVpcAttachments",
+										"ec2:DescribeVpcEndpointServiceConfigurations",
+										"ec2:DescribeVpcEndpointServicePermissions",
+										"ec2:DescribeVpcEndpointServices",
+										"ec2:ModifyTransitGatewayVpcAttachment",
+										"logs:CreateLogGroup",
+										"logs:CreateLogStream",
+										"logs:PutLogEvents",
+										"s3:PutObject"
+									],
+									"Resource": "*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"DescribeVpceService": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "index.handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaExecutionRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import boto3",
+								"import cfnresponse",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"ec2 = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
+								"",
+								"    try:",
+								"        response = ec2.describe_vpc_endpoint_service_configurations(",
+								"                Filters=[",
+								"                    {",
+								"                        'Name': 'service-id',",
+								"                        'Values': [event['ResourceProperties']['VpceServiceId']]",
+								"                    }",
+								"                ]",
+								"            )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['ServiceConfigurations'] != []:",
+								"        service_name = response['ServiceConfigurations'][0]['ServiceName']",
+								"        logger.info('--> found vpce service name: {}'.format(service_name))",
+								"        responseData = {'ServiceName': service_name}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        logger.error('!!--> Unable to find vpce service name in response! {}'.format(response))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Runtime": "python3.7",
+				"Timeout": 150
+			}
+		},
+		"RunDescribeVpceService": {
+			"Type": "Custom::DescribeVpceService",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"DescribeVpceService",
+						"Arn"
+					]
+				},
+				"VpceServiceId": {
+					"Ref": "VpcEndpointService"
+				}
+			}
+		},
+		"GwlbEndpoint1": {
+			"Type": "AWS::EC2::VPCEndpoint",
+			"DependsOn": "Fgt2",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"ServiceName": {
+					"Fn::GetAtt": [
+						"RunDescribeVpceService",
+						"ServiceName"
+					]
+				},
+				"VpcEndpointType": "GatewayLoadBalancer",
+				"SubnetIds": [
+					{
+						"Ref": "GwlbSub1"
+					}
+				]
+			}
+		},
+		"GwlbEndpoint2": {
+			"Type": "AWS::EC2::VPCEndpoint",
+			"DependsOn": "Fgt2",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"ServiceName": {
+					"Fn::GetAtt": [
+						"RunDescribeVpceService",
+						"ServiceName"
+					]
+				},
+				"VpcEndpointType": "GatewayLoadBalancer",
+				"SubnetIds": [
+					{
+						"Ref": "GwlbSub2"
+					}
+				]
+			}
+		},
+		"DescribeGwlbEni": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "index.handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaExecutionRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import boto3",
+								"import cfnresponse",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"ec2 = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
+								"",
+								"    try:",
+								"        response = ec2.describe_network_interfaces(",
+								"                Filters=[",
+								"                    {",
+								"                        'Name': 'description',",
+								"                        'Values': [event['ResourceProperties']['GwlbName']]",
+								"                    },",
+								"                    {",
+								"                        'Name': 'subnet-id',",
+								"                        'Values': [event['ResourceProperties']['SubnetIdAz1']]",
+								"                    }",
+								"                ]",
+								"            )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['NetworkInterfaces'] != []:",
+								"        gwlb_ip1 = response['NetworkInterfaces'][0]['PrivateIpAddress']",
+								"        gwlb_ip1_result = True",
+								"        logger.info('--> found Gwlb IP for AZ1: {}'.format(gwlb_ip1))",
+								"    else:",
+								"        logger.error('!!--> Unable to Gwlb IP for AZ1 in response! {}'.format(response))",
+								"",
+								"    try:",
+								"        response = ec2.describe_network_interfaces(",
+								"                Filters=[",
+								"                    {",
+								"                        'Name': 'description',",
+								"                        'Values': [event['ResourceProperties']['GwlbName']]",
+								"                    },",
+								"                    {",
+								"                        'Name': 'subnet-id',",
+								"                        'Values': [event['ResourceProperties']['SubnetIdAz2']]",
+								"                    }",
+								"                ]",
+								"            )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['NetworkInterfaces'] != []:",
+								"        gwlb_ip2 = response['NetworkInterfaces'][0]['PrivateIpAddress']",
+								"        gwlb_ip2_result = True",
+								"        logger.info('--> found Gwlb IP for AZ2: {}'.format(gwlb_ip2))",
+								"    else:",
+								"        logger.error('!!--> Unable to Gwlb IP in response! {}'.format(response))",
+								"",
+								"    if gwlb_ip1_result is True and gwlb_ip2_result is True:",
+								"        responseData = {'gwlb_ip1':gwlb_ip1, 'gwlb_ip2':gwlb_ip2}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Runtime": "python3.7",
+				"Timeout": 150
+			}
+		},
+		"RunDescribeGwlbEni": {
+			"Type": "Custom::DescribeGwlbEni",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"DescribeGwlbEni",
+						"Arn"
+					]
+				},
+				"GwlbName": {
+					"Fn::Join": [
+						"",
+						[
+							"*",
+							{
+								"Fn::GetAtt": [
+									"Gwlb",
+									"LoadBalancerFullName"
+								]
+							}
+						]
+					]
+				},
+				"SubnetIdAz1": {
+					"Ref": "GwlbSub1"
+				},
+				"SubnetIdAz2": {
+					"Ref": "GwlbSub2"
+				}
+			}
+		},
+		"TransitGateway": {
+			"Type": "AWS::EC2::TransitGateway",
+			"Condition": "CreateTgw",
+			"Properties": {
+				"AmazonSideAsn": 64512,
+				"AutoAcceptSharedAttachments": "enable",
+				"DefaultRouteTableAssociation": "disable",
+				"DefaultRouteTablePropagation": "disable",
+				"DnsSupport": "enable",
+				"VpnEcmpSupport": "enable",
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TGW"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySecurityVpcAttachment": {
+			"Type": "AWS::EC2::TransitGatewayAttachment",
+			"Condition": "CreateTgw",
+			"Properties": {
+				"SubnetIds": [
+					{
+						"Ref": "TgwAttachSub1"
+					},
+					{
+						"Ref": "TgwAttachSub2"
+					}
+				],
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				},
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"security-vpc-attachment"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySecurityRtb": {
+			"Type": "AWS::EC2::TransitGatewayRouteTable",
+			"Condition": "CreateTgw",
+			"Properties": {
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"security-tgw-rtb"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySpokeRtb": {
+			"Type": "AWS::EC2::TransitGatewayRouteTable",
+			"Condition": "CreateTgw",
+			"Properties": {
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"spoke-tgw-rtb"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TransitGatewaySecurityVpcAttachmentAssociation": {
+			"Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+			"Condition": "CreateTgw",
+			"Properties": {
+				"TransitGatewayAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"TransitGatewayRouteTableId": {
+					"Ref": "TransitGatewaySecurityRtb"
+				}
+			}
+		},
+		"TransitGatewayRoute1": {
+			"Type": "AWS::EC2::TransitGatewayRoute",
+			"Condition": "CreateTgw",
+			"DependsOn": "GwlbEndpoint2",
+			"Properties": {
+				"TransitGatewayAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"TransitGatewayRouteTableId": {
+					"Ref": "TransitGatewaySpokeRtb"
+				}
+			}
+		},
+		"PublicRouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PublicRouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"PrivateRouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"PrivateRouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"GwlbRouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"GwlbRouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttach1RouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Condition": "CreateTgwAttachSubnets",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttach1RouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"TgwAttach2RouteTable": {
+			"Type": "AWS::EC2::RouteTable",
+			"Condition": "CreateTgwAttachSubnets",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"TgwAttach2RouteTable"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"Route1": {
+			"Type": "AWS::EC2::Route",
+			"DependsOn": "AttachGateway",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "PublicRouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"GatewayId": {
+					"Ref": "InternetGateway"
+				}
+			}
+		},
+		"Route2": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateTgwAttachSubnets",
+			"DependsOn": "GwlbEndpoint1",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "TgwAttach1RouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"VpcEndpointId": {
+					"Ref": "GwlbEndpoint1"
+				}
+			}
+		},
+		"Route3": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateTgwAttachSubnets",
+			"DependsOn": "GwlbEndpoint2",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "TgwAttach2RouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"VpcEndpointId": {
+					"Ref": "GwlbEndpoint2"
+				}
+			}
+		},
+		"Route4": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateTgw",
+			"DependsOn": [
+				"TransitGateway",
+				"TransitGatewaySecurityVpcAttachment",
+				"TransitGatewaySecurityVpcAttachmentAssociation"
+			],
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				}
+			}
+		},
+		"Route5": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "CreateTgw",
+			"DependsOn": [
+				"TransitGateway",
+				"TransitGatewaySecurityVpcAttachment",
+				"TransitGatewaySecurityVpcAttachmentAssociation"
+			],
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "PrivateRouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"TransitGatewayId": {
+					"Ref": "TransitGateway"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation1": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PublicSub1"
+				},
+				"RouteTableId": {
+					"Ref": "PublicRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation2": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PublicSub2"
+				},
+				"RouteTableId": {
+					"Ref": "PublicRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation5": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PrivateSub1"
+				},
+				"RouteTableId": {
+					"Ref": "PrivateRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation6": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "PrivateSub2"
+				},
+				"RouteTableId": {
+					"Ref": "PrivateRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation7": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "GwlbSub1"
+				},
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation8": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "GwlbSub2"
+				},
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation9": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateTgwAttachSubnets",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "TgwAttachSub1"
+				},
+				"RouteTableId": {
+					"Ref": "TgwAttach1RouteTable"
+				}
+			}
+		},
+		"SubnetRouteTableAssociation10": {
+			"Type": "AWS::EC2::SubnetRouteTableAssociation",
+			"Condition": "CreateTgwAttachSubnets",
+			"Properties": {
+				"SubnetId": {
+					"Ref": "TgwAttachSub2"
+				},
+				"RouteTableId": {
+					"Ref": "TgwAttach2RouteTable"
+				}
+			}
+		},
+		"S3Endpoint": {
+			"Type": "AWS::EC2::VPCEndpoint",
+			"Properties": {
+				"PolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": "*",
+							"Action": [
+								"s3:GetObject"
+							],
+							"Resource": [
+								"*"
+							]
+						}
+					]
+				},
+				"RouteTableIds": [
+					{
+						"Ref": "PublicRouteTable"
+					}
+				],
+				"ServiceName": {
+					"Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
+				},
+				"VpcId": {
+					"Ref": "VPCID"
+				}
+			}
+		},
+		"TgwApplianceMode": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Handler": "index.handler",
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaExecutionRole",
+						"Arn"
+					]
+				},
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import boto3",
+								"import cfnresponse",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"ec2 = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
+								"",
+								"    try:",
+								"        response = ec2.modify_transit_gateway_vpc_attachment(",
+								"                TransitGatewayAttachmentId = event['ResourceProperties']['TgwInspectionVpcAttachmentId'],",
+								"                Options = {'ApplianceModeSupport': event['ResourceProperties']['ApplianceMode']}",
+								"            )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['TransitGatewayVpcAttachment'] != []:",
+								"        tgw_status = response['TransitGatewayVpcAttachment']['Options']['ApplianceModeSupport']",
+								"        logger.info('--> Current Tgw Status: {}'.format(tgw_status))",
+								"        responseData = {'Tgw ApplianceMode Status': tgw_status}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        logger.error('!!--> Unable to modify Tgw Attachment! {}'.format(response))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Runtime": "python3.7",
+				"Timeout": 30
+			}
+		},
+		"EnableTgwApplianceMode": {
+			"Type": "Custom::EnableTgwApplianceMode",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"TgwApplianceMode",
+						"Arn"
+					]
+				},
+				"TgwInspectionVpcAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"ApplianceMode": "enable"
+			}
+		},
+		"ExistingTransitGatewaySecurityVpcAttachment": {
+			"Type": "AWS::EC2::TransitGatewayAttachment",
+			"Condition": "ExistingTGW",
+			"Properties": {
+				"SubnetIds": [
+					{
+						"Ref": "TgwAttachSub1"
+					},
+					{
+						"Ref": "TgwAttachSub2"
+					}
+				],
+				"TransitGatewayId": {
+					"Ref": "TgwExisting"
+				},
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"-",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"security-vpc-attachment"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"ExistingTransitGatewaySecurityVpcAttachmentAssociation": {
+			"Type": "AWS::EC2::TransitGatewayRouteTableAssociation",
+			"Condition": "ExistingTGW",
+			"Properties": {
+				"TransitGatewayAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"TransitGatewayRouteTableId": {
+					"Ref": "TgwExistingSecurityTgwRtb"
+				}
+			}
+		},
+		"ExistingTransitGatewayRoute1": {
+			"Type": "AWS::EC2::TransitGatewayRoute",
+			"Condition": "ExistingTGW",
+			"DependsOn": "GwlbEndpoint2",
+			"Properties": {
+				"TransitGatewayAttachmentId": {
+					"Ref": "TransitGatewaySecurityVpcAttachment"
+				},
+				"DestinationCidrBlock": {
+					"Ref": "TgwExistingSpokeTgwRtbRoute"
+				},
+				"TransitGatewayRouteTableId": {
+					"Ref": "TgwExistingSpokeTgwRtb"
+				}
+			}
+		},
+		"ExistingRoute1": {
+			"Type": "AWS::EC2::Route",
+			"Condition": "ExistingTGW",
+			"DependsOn": "GwlbEndpoint2",
+			"Properties": {
+				"RouteTableId": {
+					"Ref": "GwlbRouteTable"
+				},
+				"DestinationCidrBlock": "0.0.0.0/0",
+				"TransitGatewayId": {
+					"Ref": "TgwExisting"
+				}
+			}
+		},
+		"InstanceRole": {
+			"Type": "AWS::IAM::Role",
+			"Properties": {
+				"AssumeRolePolicyDocument": {
+					"Version": "2012-10-17",
+					"Statement": [
+						{
+							"Effect": "Allow",
+							"Principal": {
+								"Service": [
+									"ec2.amazonaws.com"
+								]
+							},
+							"Action": [
+								"sts:AssumeRole"
+							]
+						}
+					]
+				},
+				"Path": "/",
+				"Policies": [
+					{
+						"PolicyName": "FGCPPolicy",
+						"PolicyDocument": {
+							"Version": "2012-10-17",
+							"Statement": [
+								{
+									"Effect": "Allow",
+									"Action": [
+										"ec2:Describe*",
+										"s3:GetObject"
+									],
+									"Resource": "*"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		"InstanceProfile": {
+			"Type": "AWS::IAM::InstanceProfile",
+			"Properties": {
+				"Path": "/",
+				"Roles": [
+					{
+						"Ref": "InstanceRole"
+					}
+				]
+			}
+		},
+		"FortiGateSecGrp": {
+			"Type": "AWS::EC2::SecurityGroup",
+			"Properties": {
+				"VpcId": {
+					"Ref": "VPCID"
+				},
+				"GroupDescription": "FortigateSecGrp",
+				"SecurityGroupIngress": [
+					{
+						"Description": "Allow remote access to FGT",
+						"IpProtocol": "-1",
+						"FromPort": "0",
+						"ToPort": "65535",
+						"CidrIp": {
+							"Ref": "CIDRForInstanceAccess"
+						}
+					},
+					{
+						"Description": "Allow local VPC access to FGT",
+						"IpProtocol": "-1",
+						"FromPort": "0",
+						"ToPort": "65535",
+						"CidrIp": {
+							"Ref": "VPCCIDR"
+						}
+					}
+				]
+			}
+		},
+		"Fgt1": {
+			"Type": "AWS::EC2::Instance",
+			"Properties": {
+				"ImageId": {
+					"Fn::GetAtt": [
+						"RunImageFunction",
+						"ami"
+					]
+				},
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"IamInstanceProfile": {
+					"Ref": "InstanceProfile"
+				},
+				"KeyName": {
+					"Ref": "KeyPair"
+				},
+				"BlockDeviceMappings": [
+					{
+						"DeviceName": "/dev/sda1",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"VolumeSize": "2",
+							"DeleteOnTermination": "true",
+							"Encrypted": "true"
+						}
+					},
+					{
+						"DeviceName": "/dev/sdb",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"VolumeSize": "30",
+							"DeleteOnTermination": "true",
+							"Encrypted": "true"
+						}
+					}
+				],
+				"NetworkInterfaces": [
+					{
+						"NetworkInterfaceId": {
+							"Ref": "fgt1eni0"
+						},
+						"DeviceIndex": "0"
+					},
+					{
+						"NetworkInterfaceId": {
+							"Ref": "fgt1eni1"
+						},
+						"DeviceIndex": "1"
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"-FortiGate1"
+								]
+							]
+						}
+					}
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [
+							"",
+							[
+								"{\n",
+								"\"bucket\"",
+								" : \"",
+								{
+									"Ref": "InitS3Bucket"
+								},
+								"\"",
+								",\n",
+								"\"region\"",
+								" : ",
+								"\"",
+								{
+									"Ref": "AWS::Region"
+								},
+								"\"",
+								",\n",
+								"\"license\"",
+								" : ",
+								"\"",
+								"/",
+								{
+									"Ref": "FortiGate1LicenseFile"
+								},
+								"\"",
+								",\n",
+								"\"config\"",
+								" : ",
+								"\"",
+								"/fgt1.txt\"",
+								"\n",
+								"}"
+							]
+						]
+					}
+				}
+			}
+		},
+		"Fgt2": {
+			"Type": "AWS::EC2::Instance",
+			"Properties": {
+				"ImageId": {
+					"Fn::GetAtt": [
+						"RunImageFunction",
+						"ami"
+					]
+				},
+				"InstanceType": {
+					"Ref": "InstanceType"
+				},
+				"IamInstanceProfile": {
+					"Ref": "InstanceProfile"
+				},
+				"KeyName": {
+					"Ref": "KeyPair"
+				},
+				"BlockDeviceMappings": [
+					{
+						"DeviceName": "/dev/sda1",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"VolumeSize": "2",
+							"DeleteOnTermination": "true",
+							"Encrypted": "true"
+						}
+					},
+					{
+						"DeviceName": "/dev/sdb",
+						"Ebs": {
+							"VolumeType": "gp2",
+							"VolumeSize": "30",
+							"DeleteOnTermination": "true",
+							"Encrypted": "true"
+						}
+					}
+				],
+				"NetworkInterfaces": [
+					{
+						"NetworkInterfaceId": {
+							"Ref": "fgt2eni0"
+						},
+						"DeviceIndex": "0"
+					},
+					{
+						"NetworkInterfaceId": {
+							"Ref": "fgt2eni1"
+						},
+						"DeviceIndex": "1"
+					}
+				],
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"-FortiGate2"
+								]
+							]
+						}
+					}
+				],
+				"UserData": {
+					"Fn::Base64": {
+						"Fn::Join": [
+							"",
+							[
+								"{\n",
+								"'bucket' : '",
+								{
+									"Ref": "InitS3Bucket"
+								},
+								"',\n",
+								"'region' : '",
+								{
+									"Ref": "AWS::Region"
+								},
+								"',\n",
+								"'license' : '/",
+								{
+									"Ref": "FortiGate2LicenseFile"
+								},
+								"',\n",
+								"'config' : '/fgt2.txt'\n",
+								"}"
+							]
+						]
+					}
+				}
+			}
+		},
+		"fgt1eni0": {
+			"Type": "AWS::EC2::NetworkInterface",
+			"Properties": {
+				"Description": "port1",
+				"GroupSet": [
+					{
+						"Ref": "FortiGateSecGrp"
+					}
+				],
+				"SourceDestCheck": "false",
+				"SubnetId": {
+					"Ref": "PublicSub1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"-fgt1eni0"
+								]
+							]
+						}
+					},
+					{
+						"Key": "Interface",
+						"Value": "eth0"
+					}
+				]
+			}
+		},
+		"fgt1eni1": {
+			"Type": "AWS::EC2::NetworkInterface",
+			"Properties": {
+				"Description": "port2",
+				"GroupSet": [
+					{
+						"Ref": "FortiGateSecGrp"
+					}
+				],
+				"SourceDestCheck": "false",
+				"SubnetId": {
+					"Ref": "PrivateSub1"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"-fgt1eni1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"fgt2eni0": {
+			"Type": "AWS::EC2::NetworkInterface",
+			"Properties": {
+				"Description": "port1",
+				"GroupSet": [
+					{
+						"Ref": "FortiGateSecGrp"
+					}
+				],
+				"SourceDestCheck": "false",
+				"SubnetId": {
+					"Ref": "PublicSub2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"-fgt2eni0"
+								]
+							]
+						}
+					},
+					{
+						"Key": "Interface",
+						"Value": "eth0"
+					}
+				]
+			}
+		},
+		"fgt2eni1": {
+			"Type": "AWS::EC2::NetworkInterface",
+			"Properties": {
+				"Description": "port2",
+				"GroupSet": [
+					{
+						"Ref": "FortiGateSecGrp"
+					}
+				],
+				"SourceDestCheck": "false",
+				"SubnetId": {
+					"Ref": "PrivateSub2"
+				},
+				"Tags": [
+					{
+						"Key": "Name",
+						"Value": {
+							"Fn::Join": [
+								"",
+								[
+									{
+										"Ref": "AWS::StackName"
+									},
+									"-fgt2eni1"
+								]
+							]
+						}
+					}
+				]
+			}
+		},
+		"Fgt1EIP": {
+			"Type": "AWS::EC2::EIP",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"Fgt2EIP": {
+			"Type": "AWS::EC2::EIP",
+			"Properties": {
+				"Domain": "vpc"
+			}
+		},
+		"Fgt1EIPASSOCIATION": {
+			"Type": "AWS::EC2::EIPAssociation",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"Fgt1EIP",
+						"AllocationId"
+					]
+				},
+				"NetworkInterfaceId": {
+					"Ref": "fgt1eni0"
+				}
+			}
+		},
+		"Fgt2EIPASSOCIATION": {
+			"Type": "AWS::EC2::EIPAssociation",
+			"Properties": {
+				"AllocationId": {
+					"Fn::GetAtt": [
+						"Fgt2EIP",
+						"AllocationId"
+					]
+				},
+				"NetworkInterfaceId": {
+					"Ref": "fgt2eni0"
+				}
+			}
+		},
+		"ImageFunction": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import boto3",
+								"import cfnresponse",
+								"import logging",
+								"import json",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"ec2 = boto3.client('ec2')",
+								"",
+								"def handler(event, context):",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
+								"",
+								"    try:",
+								"        response = ec2.describe_images(",
+								"            Filters=[{'Name': 'name', 'Values': [event['ResourceProperties']['LicenseType']]}],",
+								"            Owners=['679593333241', '464423754048', '211372476111', '345084742485', '874634375141']",
+								"        )",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['Images'] != []:",
+								"        ami_dict = {}",
+								"        ami_list = []",
+								"        for entry in response['Images']:",
+								"            key = entry['CreationDate']",
+								"            ami_dict[key] = entry['ImageId']",
+								"        ami_list = sorted(ami_dict, reverse = True)",
+								"        logger.info('--> found latest AMI: {}, {}'.format(ami_dict[ami_list[0]], ami_list[0]))",
+								"        responseData = {'ami': ami_dict[ami_list[0]]}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        logger.error('!!--> Unable to find AMI in response! {}'.format(response))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaExecutionRole",
+						"Arn"
+					]
+				},
+				"Timeout": 120,
+				"Handler": "index.handler",
+				"Runtime": "python3.7",
+				"MemorySize": 128
+			}
+		},
+		"RunImageFunction": {
+			"Type": "Custom::ImageFunction",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"ImageFunction",
+						"Arn"
+					]
+				},
+				"LicenseType": {
+					"Fn::If": [
+						"LicenseTypeBYOL",
+						"FortiGate-VM64-AWS *(6.4.*)*",
+						"FortiGate-VM64-AWSONDEMAND *(6.4.*)*"
+					]
+				}
+			}
+		},
+		"InitFunction": {
+			"Type": "AWS::Lambda::Function",
+			"Properties": {
+				"Code": {
+					"ZipFile": {
+						"Fn::Join": [
+							"\n",
+							[
+								"import ast",
+								"import boto3",
+								"import cfnresponse",
+								"import json",
+								"import logging",
+								"logger = logging.getLogger()",
+								"logger.setLevel(logging.INFO)",
+								"s3 = boto3.client('s3')",
+								"",
+								"template = '''\\",
+								"config system global",
+								"set hostname {Hostname}",
+								"set admintimeout 60",
+								"end",
+								"config system interface",
+								"edit port1",
+								"set alias public",
+								"set mode dhcp",
+								"set allowaccess ping https ssh fgfm",
+								"set mtu-override enable",
+								"set mtu 9001",
+								"next",
+								"edit port2",
+								"set alias private",
+								"set mode dhcp",
+								"set allowaccess ping https ssh fgfm",
+								"set mtu-override enable",
+								"set mtu 9001",
+								"next",
+								"end",
+								"config system geneve",
+								"edit gwlb1-az1",
+								"set interface port1",
+								"set type ppp",
+								"set remote-ip {GwlbIp1}",
+								"next",
+								"edit gwlb1-az2",
+								"set interface port1",
+								"set type ppp",
+								"set remote-ip {GwlbIp2}",
+								"next",
+								"end",
+								"config system zone",
+								"edit gwlb1-tunnels",
+								"set interface gwlb1-az1 gwlb1-az2",
+								"next",
+								"end",
+								"config router static",
+								"edit 1",
+								"set distance 5",
+								"set priority 100",
+								"set device gwlb1-az1",
+								"next",
+								"edit 2",
+								"set distance 5",
+								"set priority 100",
+								"set device gwlb1-az2",
+								"next",
+								"end",
+								"config router policy",
+								"edit 1",
+								"set input-device gwlb1-az1",
+								"set dst 10.0.0.0/255.0.0.0 17.16.0.0/255.255.240.0 192.168.0.0/255.255.0.0",
+								"set output-device gwlb1-az1",
+								"next",
+								"edit 2",
+								"set input-device gwlb1-az2",
+								"set dst 10.0.0.0/255.0.0.0 17.16.0.0/255.255.240.0 192.168.0.0/255.255.0.0",
+								"set output-device gwlb1-az2",
+								"next",
+								"end",
+								"config firewall policy",
+								"edit 1",
+								"set name egress",
+								"set srcintf gwlb1-tunnels",
+								"set dstintf port1",
+								"set srcaddr all",
+								"set dstaddr all",
+								"set action accept",
+								"set schedule always",
+								"set service ALL",
+								"set logtraffic all",
+								"set nat enable",
+								"next",
+								"edit 2",
+								"set name ingress-east-west",
+								"set srcintf gwlb1-tunnels",
+								"set dstintf gwlb1-tunnels",
+								"set srcaddr all",
+								"set dstaddr all",
+								"set action accept",
+								"set schedule always",
+								"set service ALL",
+								"set logtraffic all",
+								"next",
+								"end\\",
+								"'''",
+								"",
+								"def handler(event, context):",
+								"    dict1 = ast.literal_eval(event['ResourceProperties']['FGT1Info'])",
+								"    dict2 = ast.literal_eval(event['ResourceProperties']['FGT2Info'])",
+								"    fgt1_conf = template.format(**dict1)",
+								"    fgt2_conf = template.format(**dict2)",
+								"    fgt1_result = False",
+								"    fgt2_result = False",
+								"    logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"",
+								"    try:",
+								"        response = s3.put_object(Body=fgt1_conf, Bucket=event['ResourceProperties']['S3Bucket'], Key='fgt1.txt')",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200:",
+								"        fgt1_result = True",
+								"        logger.info('<-- s3 put_object fgt1.txt successful')",
+								"",
+								"    try:",
+								"        response = s3.put_object(Body=fgt2_conf, Bucket=event['ResourceProperties']['S3Bucket'], Key='fgt2.txt')",
+								"    except Exception as error:",
+								"        logger.error('<--!! Exception: {}'.format(error))",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200:",
+								"        fgt2_result = True",
+								"        logger.info('<-- s3 put_object fgt2.txt successful')",
+								"",
+								"    if fgt1_result is True and fgt2_result is True:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"    else:",
+								"        responseData = {'msg':'error'}",
+								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								""
+							]
+						]
+					}
+				},
+				"Role": {
+					"Fn::GetAtt": [
+						"LambdaExecutionRole",
+						"Arn"
+					]
+				},
+				"Timeout": 120,
+				"Handler": "index.handler",
+				"Runtime": "python3.7",
+				"MemorySize": 128
+			}
+		},
+		"RunInitFunction": {
+			"Type": "Custom::InitFunction",
+			"Properties": {
+				"ServiceToken": {
+					"Fn::GetAtt": [
+						"InitFunction",
+						"Arn"
+					]
+				},
+				"S3Bucket": {
+					"Ref": "InitS3Bucket"
+				},
+				"FGT1Info": {
+					"Fn::Join": [
+						"",
+						[
+							"{",
+							"'GwlbIp1':'",
+							{
+								"Fn::GetAtt": [
+									"RunDescribeGwlbEni",
+									"gwlb_ip1"
+								]
+							},
+							"',",
+							"'GwlbIp2':'",
+							{
+								"Fn::GetAtt": [
+									"RunDescribeGwlbEni",
+									"gwlb_ip2"
+								]
+							},
+							"',",
+							"'Hostname':'Fgt1'",
+							"}"
+						]
+					]
+				},
+				"FGT2Info": {
+					"Fn::Join": [
+						"",
+						[
+							"{",
+							"'GwlbIp1':'",
+							{
+								"Fn::GetAtt": [
+									"RunDescribeGwlbEni",
+									"gwlb_ip1"
+								]
+							},
+							"',",
+							"'GwlbIp2':'",
+							{
+								"Fn::GetAtt": [
+									"RunDescribeGwlbEni",
+									"gwlb_ip2"
+								]
+							},
+							"',",
+							"'Hostname':'Fgt2'",
+							"}"
+						]
+					]
+				}
+			}
+		}
+	},
+	"Outputs": {
+		"Username": {
+			"Value": "admin",
+			"Description": "Username for the Fortigates"
+		},
+		"Password": {
+			"Value": "The instance ID of each FortiGate",
+			"Description": "Initial password for each FortiGates"
+		},
+		"FortiGate1LoginURL": {
+			"Value": {
+				"Fn::Join": [
+					"",
+					[
+						"https://",
+						{
+							"Ref": "Fgt1EIP"
+						}
+					]
+				]
+			},
+			"Description": "Login URL for FortiGate 1"
+		},
+		"FortiGate2LoginURL": {
+			"Value": {
+				"Fn::Join": [
+					"",
+					[
+						"https://",
+						{
+							"Ref": "Fgt2EIP"
+						}
+					]
+				]
+			},
+			"Description": "Login URL for FortiGate 2"
+		},
+		"VpcEndpointServiceName": {
+			"Value": {
+				"Fn::GetAtt": [
+					"RunDescribeVpceService",
+					"ServiceName"
+				]
+			},
+			"Description": "VPC endpoint service name, for use in spoke template"
+		},
+		"TransitGateway": {
+			"Value": {
+				"Ref": "TransitGateway"
+			},
+			"Condition": "CreateTgw",
+			"Description": "Transit Gateway ID, for use in spoke template"
+		},
+		"TransitGatewaySecurityRtb": {
+			"Value": {
+				"Ref": "TransitGatewaySecurityRtb"
+			},
+			"Condition": "CreateTgw",
+			"Description": "Transit Gateway Route Table ID that the security VPC is associated to, for use in spoke template"
+		},
+		"TransitGatewaySpokeRtb": {
+			"Value": {
+				"Ref": "TransitGatewaySpokeRtb"
+			},
+			"Condition": "CreateTgw",
+			"Description": "Transit Gateway Route Table ID that the spoke VPCs will associate to, for use in spoke template"
+		},
+		"ExistingTransitGateway": {
+			"Value": {
+				"Ref": "TgwExisting"
+			},
+			"Condition": "ExistingTGW",
+			"Description": "Existing Transit Gateway ID, for use in spoke template"
+		},
+		"ExistingTransitGatewaySecurityRtb": {
+			"Value": {
+				"Ref": "TgwExistingSecurityTgwRtb"
+			},
+			"Condition": "ExistingTGW",
+			"Description": "Existing Transit Gateway Route Table ID that the security VPC is associated to, for use in spoke template"
+		},
+		"ExistingTransitGatewaySpokeRtb": {
+			"Value": {
+				"Ref": "TgwExistingSpokeTgwRtb"
+			},
+			"Condition": "ExistingTGW",
+			"Description": "Existing Transit Gateway Route Table ID that the spoke VPCs will associate to, for use in spoke template"
+		}
+	}
+}
