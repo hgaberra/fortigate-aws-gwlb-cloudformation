@@ -43,6 +43,7 @@
 						"InstanceType",
 						"CIDRForInstanceAccess",
 						"KeyPair",
+						"EncryptVolumes",
 						"InitS3Bucket",
 						"LicenseType",
 						"FortiGate1LicenseFile",
@@ -166,6 +167,15 @@
 		"KeyPair": {
 			"Type": "AWS::EC2::KeyPair::KeyName",
 			"Description": "Select a keypair to associate with the FortiGates"
+		},
+		"EncryptVolumes": {
+			"Type": "String",
+			"Description": "Select 'true' to encrypt the FortiGate instance OS and Log volumes with your account's KMS default master key for EBS.  Otherwise select false to leave unencrypted",
+			"Default": "false",
+			"AllowedValues": [
+				"true",
+				"false"
+			]
 		},
 		"InitS3Bucket": {
 			"Type": "String",
@@ -630,7 +640,7 @@
 				]
 			}
 		},
-		"LambdaExecutionRole": {
+		"LambdaRole": {
 			"Type": "AWS::IAM::Role",
 			"Properties": {
 				"RoleName": {
@@ -640,7 +650,7 @@
 							{
 								"Ref": "AWS::StackName"
 							},
-							"LambdaExecutionRole"
+							"LambdaRole"
 						]
 					]
 				},
@@ -696,7 +706,7 @@
 				"Handler": "index.handler",
 				"Role": {
 					"Fn::GetAtt": [
-						"LambdaExecutionRole",
+						"LambdaRole",
 						"Arn"
 					]
 				},
@@ -815,7 +825,7 @@
 				"Handler": "index.handler",
 				"Role": {
 					"Fn::GetAtt": [
-						"LambdaExecutionRole",
+						"LambdaRole",
 						"Arn"
 					]
 				},
@@ -1366,44 +1376,13 @@
 				}
 			}
 		},
-		"S3Endpoint": {
-			"Type": "AWS::EC2::VPCEndpoint",
-			"Properties": {
-				"PolicyDocument": {
-					"Version": "2012-10-17",
-					"Statement": [
-						{
-							"Effect": "Allow",
-							"Principal": "*",
-							"Action": [
-								"s3:GetObject"
-							],
-							"Resource": [
-								"*"
-							]
-						}
-					]
-				},
-				"RouteTableIds": [
-					{
-						"Ref": "PublicRouteTable"
-					}
-				],
-				"ServiceName": {
-					"Fn::Sub": "com.amazonaws.${AWS::Region}.s3"
-				},
-				"VpcId": {
-					"Ref": "VPCID"
-				}
-			}
-		},
 		"TgwApplianceMode": {
 			"Type": "AWS::Lambda::Function",
 			"Properties": {
 				"Handler": "index.handler",
 				"Role": {
 					"Fn::GetAtt": [
-						"LambdaExecutionRole",
+						"LambdaRole",
 						"Arn"
 					]
 				},
@@ -1456,8 +1435,8 @@
 				"Timeout": 30
 			}
 		},
-		"EnableTgwApplianceMode": {
-			"Type": "Custom::EnableTgwApplianceMode",
+		"RunTgwApplianceMode": {
+			"Type": "Custom::RunTgwApplianceMode",
 			"Properties": {
 				"ServiceToken": {
 					"Fn::GetAtt": [
@@ -1579,6 +1558,10 @@
 									"Effect": "Allow",
 									"Action": [
 										"ec2:Describe*",
+										"eks:DescribeCluster",
+										"eks:ListClusters",
+										"inspector:DescribeFindings",
+										"inspector:ListFindings",
 										"s3:GetObject"
 									],
 									"Resource": "*"
@@ -1654,7 +1637,9 @@
 							"VolumeType": "gp2",
 							"VolumeSize": "2",
 							"DeleteOnTermination": "true",
-							"Encrypted": "true"
+							"Encrypted": {
+								"Ref": "EncryptVolumes"
+							}
 						}
 					},
 					{
@@ -1663,20 +1648,22 @@
 							"VolumeType": "gp2",
 							"VolumeSize": "30",
 							"DeleteOnTermination": "true",
-							"Encrypted": "true"
+							"Encrypted": {
+								"Ref": "EncryptVolumes"
+							}
 						}
 					}
 				],
 				"NetworkInterfaces": [
 					{
 						"NetworkInterfaceId": {
-							"Ref": "fgt1eni0"
+							"Ref": "Fgt1Eni0"
 						},
 						"DeviceIndex": "0"
 					},
 					{
 						"NetworkInterfaceId": {
-							"Ref": "fgt1eni1"
+							"Ref": "Fgt1Eni1"
 						},
 						"DeviceIndex": "1"
 					}
@@ -1764,7 +1751,9 @@
 							"VolumeType": "gp2",
 							"VolumeSize": "2",
 							"DeleteOnTermination": "true",
-							"Encrypted": "true"
+							"Encrypted": {
+								"Ref": "EncryptVolumes"
+							}
 						}
 					},
 					{
@@ -1773,20 +1762,22 @@
 							"VolumeType": "gp2",
 							"VolumeSize": "30",
 							"DeleteOnTermination": "true",
-							"Encrypted": "true"
+							"Encrypted": {
+								"Ref": "EncryptVolumes"
+							}
 						}
 					}
 				],
 				"NetworkInterfaces": [
 					{
 						"NetworkInterfaceId": {
-							"Ref": "fgt2eni0"
+							"Ref": "Fgt2Eni0"
 						},
 						"DeviceIndex": "0"
 					},
 					{
 						"NetworkInterfaceId": {
-							"Ref": "fgt2eni1"
+							"Ref": "Fgt2Eni1"
 						},
 						"DeviceIndex": "1"
 					}
@@ -1836,7 +1827,7 @@
 				}
 			}
 		},
-		"fgt1eni0": {
+		"Fgt1Eni0": {
 			"Type": "AWS::EC2::NetworkInterface",
 			"Properties": {
 				"Description": "port1",
@@ -1859,7 +1850,7 @@
 									{
 										"Ref": "AWS::StackName"
 									},
-									"-fgt1eni0"
+									"-Fgt1Eni0"
 								]
 							]
 						}
@@ -1871,7 +1862,7 @@
 				]
 			}
 		},
-		"fgt1eni1": {
+		"Fgt1Eni1": {
 			"Type": "AWS::EC2::NetworkInterface",
 			"Properties": {
 				"Description": "port2",
@@ -1894,7 +1885,7 @@
 									{
 										"Ref": "AWS::StackName"
 									},
-									"-fgt1eni1"
+									"-Fgt1Eni1"
 								]
 							]
 						}
@@ -1902,7 +1893,7 @@
 				]
 			}
 		},
-		"fgt2eni0": {
+		"Fgt2Eni0": {
 			"Type": "AWS::EC2::NetworkInterface",
 			"Properties": {
 				"Description": "port1",
@@ -1925,7 +1916,7 @@
 									{
 										"Ref": "AWS::StackName"
 									},
-									"-fgt2eni0"
+									"-Fgt2Eni0"
 								]
 							]
 						}
@@ -1937,7 +1928,7 @@
 				]
 			}
 		},
-		"fgt2eni1": {
+		"Fgt2Eni1": {
 			"Type": "AWS::EC2::NetworkInterface",
 			"Properties": {
 				"Description": "port2",
@@ -1960,7 +1951,7 @@
 									{
 										"Ref": "AWS::StackName"
 									},
-									"-fgt2eni1"
+									"-Fgt2Eni1"
 								]
 							]
 						}
@@ -1990,7 +1981,7 @@
 					]
 				},
 				"NetworkInterfaceId": {
-					"Ref": "fgt1eni0"
+					"Ref": "Fgt1Eni0"
 				}
 			}
 		},
@@ -2004,7 +1995,7 @@
 					]
 				},
 				"NetworkInterfaceId": {
-					"Ref": "fgt2eni0"
+					"Ref": "Fgt2Eni0"
 				}
 			}
 		},
@@ -2035,7 +2026,7 @@
 								"    try:",
 								"        response = ec2.describe_images(",
 								"            Filters=[{'Name': 'name', 'Values': [event['ResourceProperties']['LicenseType']]}],",
-								"            Owners=['679593333241', '464423754048', '211372476111', '345084742485', '874634375141']",
+								"            Owners=['679593333241', '464423754048', '211372476111', '345084742485', '874634375141', '939706979954', '769304176199']",
 								"        )",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
@@ -2063,7 +2054,7 @@
 				},
 				"Role": {
 					"Fn::GetAtt": [
-						"LambdaExecutionRole",
+						"LambdaRole",
 						"Arn"
 					]
 				},
@@ -2161,12 +2152,12 @@
 								"config router policy",
 								"edit 1",
 								"set input-device gwlb1-az1",
-								"set dst 10.0.0.0/255.0.0.0 17.16.0.0/255.255.240.0 192.168.0.0/255.255.0.0",
+								"set dst 10.0.0.0/255.0.0.0 17.16.0.0/255.240.0.0 192.168.0.0/255.255.0.0",
 								"set output-device gwlb1-az1",
 								"next",
 								"edit 2",
 								"set input-device gwlb1-az2",
-								"set dst 10.0.0.0/255.0.0.0 17.16.0.0/255.255.240.0 192.168.0.0/255.255.0.0",
+								"set dst 10.0.0.0/255.0.0.0 17.16.0.0/255.240.0.0 192.168.0.0/255.255.0.0",
 								"set output-device gwlb1-az2",
 								"next",
 								"end",
@@ -2198,13 +2189,18 @@
 								"'''",
 								"",
 								"def handler(event, context):",
-								"    dict1 = ast.literal_eval(event['ResourceProperties']['FGT1Info'])",
-								"    dict2 = ast.literal_eval(event['ResourceProperties']['FGT2Info'])",
-								"    fgt1_conf = template.format(**dict1)",
-								"    fgt2_conf = template.format(**dict2)",
-								"    fgt1_result = False",
-								"    fgt2_result = False",
-								"    logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"    if event['RequestType'] == 'Create':",
+								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"        dict1 = ast.literal_eval(event['ResourceProperties']['FGT1Info'])",
+								"        dict2 = ast.literal_eval(event['ResourceProperties']['FGT2Info'])",
+								"        fgt1_conf = template.format(**dict1)",
+								"        fgt2_conf = template.format(**dict2)",
+								"        fgt1_result = False",
+								"        fgt2_result = False",
+								"    else:",
+								"        responseData = {'msg':'200'}",
+								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
+								"        return None",
 								"",
 								"    try:",
 								"        response = s3.put_object(Body=fgt1_conf, Bucket=event['ResourceProperties']['S3Bucket'], Key='fgt1.txt')",
@@ -2239,7 +2235,7 @@
 				},
 				"Role": {
 					"Fn::GetAtt": [
-						"LambdaExecutionRole",
+						"LambdaRole",
 						"Arn"
 					]
 				},
