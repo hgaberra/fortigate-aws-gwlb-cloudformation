@@ -18,7 +18,7 @@
 						"PrivateSubnet2",
 						"GwlbSubnet1",
 						"GwlbSubnet2",
-						"TgwAttachSubnets",
+						"TgwAttach",
 						"TgwAttachSubnet1",
 						"TgwAttachSubnet2"
 					]
@@ -45,6 +45,7 @@
 						"KeyPair",
 						"EncryptVolumes",
 						"InitS3Bucket",
+						"FortiOSVersion",
 						"LicenseType",
 						"FortiGate1LicenseFile",
 						"FortiGate2LicenseFile"
@@ -97,7 +98,7 @@
 			"Default": "10.0.6.0/24",
 			"Description": "Provide a network CIDR for GwlbSubnet2"
 		},
-		"TgwAttachSubnets": {
+		"TgwAttach": {
 			"Type": "String",
 			"Description": "Select Yes if you plan to attach this VPC to Transit GW with a VPC attachment, otherwise select No",
 			"AllowedValues": [
@@ -108,12 +109,12 @@
 		"TgwAttachSubnet1": {
 			"Type": "String",
 			"Default": "10.0.7.0/24",
-			"Description": "[Ignore if TgwAttachSubnets is No] Provide a network CIDR for TgwAttachSubnet1"
+			"Description": "[Ignore if TgwAttach is No] Provide a network CIDR for TgwAttachSubnet1"
 		},
 		"TgwAttachSubnet2": {
 			"Type": "String",
 			"Default": "10.0.8.0/24",
-			"Description": "Provide a network CIDR for TgwAttachSubnet2"
+			"Description": "[Ignore if TgwAttach is No] Provide a network CIDR for TgwAttachSubnet2"
 		},
 		"TgwCreation": {
 			"Type": "String",
@@ -171,7 +172,6 @@
 		"EncryptVolumes": {
 			"Type": "String",
 			"Description": "Select 'true' to encrypt the FortiGate instance OS and Log volumes with your account's KMS default master key for EBS.  Otherwise select false to leave unencrypted",
-			"Default": "false",
 			"AllowedValues": [
 				"true",
 				"false"
@@ -181,6 +181,15 @@
 			"Type": "String",
 			"MinLength": "1",
 			"Description": "Provide the Init S3 Bucket name, where your config files will be created  *** the bucket should exist in the same region as this deployment for successful bootstrapping ***"
+		},
+		"FortiOSVersion": {
+			"Type": "String",
+			"Default": "6.4.x",
+			"Description": "Select the verion of FortiOS to use (latest GA AMI will be used)",
+			"AllowedValues": [
+				"6.4.x",
+				"7.0.x"
+			]
 		},
 		"LicenseType": {
 			"Type": "String",
@@ -199,11 +208,27 @@
 			"Description": "[BYOL Only, leave blank for PAYG] Provide the name of the BYOL license file in the Init S3 Bucket for FortiGate2 (ie fgt2.lic or prefix/fgt2.lic)"
 		}
 	},
+	"Mappings": {
+		"FortiOSAMISearchString": {
+			"6.2.x": {
+				"BYOL": "FortiGate-VM64-AWS *(6.2.*)*",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(6.2.*)*"
+			},
+			"6.4.x": {
+				"BYOL": "FortiGate-VM64-AWS *(6.4.*)*",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(6.4.*)*"
+			},
+			"7.0.x": {
+				"BYOL": "FortiGate-VM64-AWS *(7.0.*)*",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.0.*)*"
+			}
+		}
+	},
 	"Conditions": {
 		"CreateTgwAttachSubnets": {
 			"Fn::Equals": [
 				{
-					"Ref": "TgwAttachSubnets"
+					"Ref": "TgwAttach"
 				},
 				"Yes"
 			]
@@ -1437,6 +1462,7 @@
 		},
 		"RunTgwApplianceMode": {
 			"Type": "Custom::RunTgwApplianceMode",
+			"Condition": "CreateTgw",
 			"Properties": {
 				"ServiceToken": {
 					"Fn::GetAtt": [
@@ -2074,10 +2100,14 @@
 					]
 				},
 				"LicenseType": {
-					"Fn::If": [
-						"LicenseTypeBYOL",
-						"FortiGate-VM64-AWS *(6.4.*)*",
-						"FortiGate-VM64-AWSONDEMAND *(6.4.*)*"
+					"Fn::FindInMap": [
+						"FortiOSAMISearchString",
+						{
+							"Ref": "FortiOSVersion"
+						},
+						{
+							"Ref": "LicenseType"
+						}
 					]
 				}
 			}
