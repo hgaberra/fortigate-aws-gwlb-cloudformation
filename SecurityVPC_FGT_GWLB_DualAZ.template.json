@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v2.3) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
+	"Description": "(v2.4) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -586,10 +586,12 @@
 						"Ref": "GwlbSub2"
 					}
 				],
-				"LoadBalancerAttributes": {
-					"Key": "load_balancing.cross_zone.enabled",
-					"Value": "true"
-				},
+				"LoadBalancerAttributes": [
+					{
+						"Key": "load_balancing.cross_zone.enabled",
+						"Value": "true"
+					}
+				],
 				"Tags": [
 					{
 						"Key": "Name",
