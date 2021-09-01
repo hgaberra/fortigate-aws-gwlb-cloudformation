@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v2.0) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
+	"Description": "(v2.3) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -566,7 +566,17 @@
 		"Gwlb": {
 			"Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
 			"Properties": {
-				"Name": "GwlbName",
+				"Name": {
+					"Fn::Join": [
+						"-",
+						[
+							{
+								"Ref": "AWS::StackName"
+							},
+							"Gwlb"
+						]
+					]
+				},
 				"Type": "gateway",
 				"Subnets": [
 					{
@@ -576,6 +586,10 @@
 						"Ref": "GwlbSub2"
 					}
 				],
+				"LoadBalancerAttributes": {
+					"Key": "load_balancing.cross_zone.enabled",
+					"Value": "true"
+				},
 				"Tags": [
 					{
 						"Key": "Name",
@@ -597,7 +611,17 @@
 		"TargetGroup": {
 			"Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
 			"Properties": {
-				"Name": "TargetGroupName",
+				"Name": {
+					"Fn::Join": [
+						"-",
+						[
+							{
+								"Ref": "AWS::StackName"
+							},
+							"tg-geneve"
+						]
+					]
+				},
 				"Port": 6081,
 				"Protocol": "GENEVE",
 				"VpcId": {
