@@ -202,7 +202,8 @@ Once the prerequisites have been satisfied, login to your account in the AWS con
 12.  After accessing one of the jump box instances, we can use a sniffer command on either or both FortiGates to see traffic flow over the GENEVE tunnels to different destinations.
 
 ![Example Diagram](./content/deploy12a.png)
-![Example Diagram](./content/deploy12a.png)
+![Example Diagram](./content/deploy12b.png)
+![Example Diagram](./content/deploy12c.png)
 
 13.  This concludes the template deployment example.
 ----
