@@ -191,11 +191,13 @@ Once the prerequisites have been satisfied, login to your account in the AWS con
 
 ![Example Diagram](./content/deploy10.png)
 
-11.  On FortiGate1 navigate to Network > Interfaces, Network > Policy Routes, Network, and run the CLI command 'get router info routing-table all' to see the bootstrapped networking config.  
+11.  On FortiGate1 navigate to Network > Interfaces, Network > Policy Routes, Network, and run the CLI command 'get router info routing-table all' to see the bootstrapped networking config.  *** Notice *** the GENEVE tunnels are between the FortiGate port1 interface IP and the private IP of the GWLB node ENI IP.
 
 ![Example Diagram](./content/deploy11a.png)
 ![Example Diagram](./content/deploy11b.png)
 ![Example Diagram](./content/deploy11c.png)
+![Example Diagram](./content/deploy11d.png)
+![Example Diagram](./content/deploy11e.png)
 
 12.  After accessing one of the jump box instances, we can use a sniffer command on either or both FortiGates to see traffic flow over the GENEVE tunnels to different destinations.
 
