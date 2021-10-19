@@ -23,8 +23,9 @@ The main benefits of this solution are:
 
 **Note:**  Other Fortinet solutions for AWS such as FGCP HA (Dual or Single AZ) and AutoScaling are available.  Please visit [www.fortinet.com/aws](https://www.fortinet.com/aws) for further information.
 
-**Reference Diagram:**
+**Reference Diagrams:**
 ![Example Diagram](./content/net-diag1.png)
+![Example Diagram](./content/net-diag2.png)
 
 ## Solution Components
 GWLB is a load balancer that accepts all IP traffic and forwards this to targets in a target group.  GWLB supports being deployed into multiple availability zones.  GWLB itself receives traffic with the use of GWLB endpoints (GWLBe).  GWLBe are VPC endpoints that you deploy into your workload VPCs subnets.  Then you can use VPC routing to send traffic to the GWLBe in the same availability zone.
@@ -100,7 +101,7 @@ To change this behavior, you can simply enable cross zone load balancing.  This 
 **Cross Zone Load Balancing Enabled:**
 ![Example Diagram](./content/chart1.png)
 
-**Thus we recommend that cross zone load balancing should be enabled for the best resiliency for your environment.**  For more details on this, reference [AWS Documentation](https://aws.amazon.com/blogs/networking-and-content-delivery/scaling-network-traffic-inspection-using-aws-gateway-load-balancer/.
+**Thus we recommend that cross zone load balancing should be enabled for the best resiliency for your environment.**  For more details on this, reference [AWS Documentation](https://aws.amazon.com/blogs/networking-and-content-delivery/scaling-network-traffic-inspection-using-aws-gateway-load-balancer/).
 
 ## CloudFormation Templates
 CloudFormation templates are available to simplify the deployment process.
@@ -145,7 +146,6 @@ Before attempting to create a stack with the templates, a few prerequisites shou
 3.	If BYOL licensing is to be used, ensure these licenses have been registered on the support site.  Reference the VM license registration process PDF in this [KB Article](http://kb.fortinet.com/kb/microsites/search.do?cmd=displayKC&docType=kc&externalId=FD32312).
 4.   **Create a new S3 bucket in the same region where the template will be deployed.  If the bucket is in a different region than the template deployment, bootstrapping will fail and the FGTs will be inaccessible**.
 5.  If BYOL licensing is to be used, upload these licenses to the root directory of the same S3 bucket from the step above.
-6.  **Ensure that all of the PublicSubnet's AWS route tables have a default route to an AWS Internet Gateway.**  Reference [AWS Documentation](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-tables-internet-gateway) for further information.
 
 Once the prerequisites have been satisfied, login to your account in the AWS console and proceed with the deployment steps below.
 
