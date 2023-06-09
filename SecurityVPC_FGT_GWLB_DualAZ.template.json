@@ -1,6 +1,6 @@
 {
 	"AWSTemplateFormatVersion": "2010-09-09",
-	"Description": "(v2.5) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
+	"Description": "(v3.5) Deploy a security VPC for a FGT & GWLB design with 8 subnets (Public, Private, Gwlb, and TgwAttach) across 2x Availability Zones.",
 	"Metadata": {
 		"AWS::CloudFormation::Interface": {
 			"ParameterGroups": [
@@ -157,7 +157,14 @@
 				"c5n.2xlarge",
 				"c5n.4xlarge",
 				"c5n.9xlarge",
-				"c5n.18xlarge"
+				"c5n.18xlarge",
+				"c6i.large",
+				"c6i.xlarge",
+				"c6i.2xlarge",
+				"c6i.4xlarge",
+				"c6i.8xlarge",
+				"c6i.16xlarge",
+				"c6i.24xlarge"
 			]
 		},
 		"CIDRForInstanceAccess": {
@@ -184,11 +191,12 @@
 		},
 		"FortiOSVersion": {
 			"Type": "String",
-			"Default": "6.4.x",
+			"Default": "7.0.x",
 			"Description": "Select the verion of FortiOS to use (latest GA AMI will be used)",
 			"AllowedValues": [
 				"6.4.x",
-				"7.0.x"
+				"7.0.x",
+				"7.2.x"
 			]
 		},
 		"LicenseType": {
@@ -210,10 +218,6 @@
 	},
 	"Mappings": {
 		"FortiOSAMISearchString": {
-			"6.2.x": {
-				"BYOL": "FortiGate-VM64-AWS *(6.2.*)*",
-				"PAYG": "FortiGate-VM64-AWSONDEMAND *(6.2.*)*"
-			},
 			"6.4.x": {
 				"BYOL": "FortiGate-VM64-AWS *(6.4.*)*",
 				"PAYG": "FortiGate-VM64-AWSONDEMAND *(6.4.*)*"
@@ -221,6 +225,10 @@
 			"7.0.x": {
 				"BYOL": "FortiGate-VM64-AWS *(7.0.*)*",
 				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.0.*)*"
+			},
+			"7.2.x": {
+				"BYOL": "FortiGate-VM64-AWS *(7.2.*)*",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.2.*)*"
 			}
 		}
 	},
@@ -253,6 +261,16 @@
 				}
 			]
 		},
+        "CreateAttachments": {
+            "Fn::Or": [
+                {
+                    "Condition": "CreateTgw"
+                },
+                {
+                    "Condition": "ExistingTGW"
+                }
+            ]
+        },
 		"LicenseTypeBYOL": {
 			"Fn::Equals": [
 				{
@@ -793,7 +811,7 @@
 								"            )",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
-								"        responseData = {'msg':'error'}",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
 								"",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['ServiceConfigurations'] != []:",
@@ -810,7 +828,7 @@
 						]
 					}
 				},
-				"Runtime": "python3.7",
+				"Runtime": "python3.9",
 				"Timeout": 150
 			}
 		},
@@ -917,8 +935,9 @@
 								"            )",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
-								"        responseData = {'msg':'error'}",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"        return None",
 								"",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['NetworkInterfaces'] != []:",
 								"        gwlb_ip1 = response['NetworkInterfaces'][0]['PrivateIpAddress']",
@@ -944,6 +963,7 @@
 								"        logger.error('<--!! Exception: {}'.format(error))",
 								"        responseData = {'msg':'error'}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"        return None",
 								"",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['NetworkInterfaces'] != []:",
 								"        gwlb_ip2 = response['NetworkInterfaces'][0]['PrivateIpAddress']",
@@ -963,7 +983,7 @@
 						]
 					}
 				},
-				"Runtime": "python3.7",
+				"Runtime": "python3.9",
 				"Timeout": 150
 			}
 		},
@@ -1038,7 +1058,7 @@
 						"Ref": "TgwAttachSub2"
 					}
 				],
-				"TransitGatewayId": {
+				"TransitGatewayId":{
 					"Ref": "TransitGateway"
 				},
 				"VpcId": {
@@ -1465,7 +1485,7 @@
 								"            )",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
-								"        responseData = {'msg':'error'}",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
 								"",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['TransitGatewayVpcAttachment'] != []:",
@@ -1482,7 +1502,7 @@
 						]
 					}
 				},
-				"Runtime": "python3.7",
+				"Runtime": "python3.9",
 				"Timeout": 30
 			}
 		},
@@ -1543,7 +1563,7 @@
 			"Condition": "ExistingTGW",
 			"Properties": {
 				"TransitGatewayAttachmentId": {
-					"Ref": "TransitGatewaySecurityVpcAttachment"
+					"Ref": "ExistingTransitGatewaySecurityVpcAttachment"
 				},
 				"TransitGatewayRouteTableId": {
 					"Ref": "TgwExistingSecurityTgwRtb"
@@ -1556,7 +1576,7 @@
 			"DependsOn": "GwlbEndpoint2",
 			"Properties": {
 				"TransitGatewayAttachmentId": {
-					"Ref": "TransitGatewaySecurityVpcAttachment"
+					"Ref": "ExistingTransitGatewaySecurityVpcAttachment"
 				},
 				"DestinationCidrBlock": {
 					"Ref": "TgwExistingSpokeTgwRtbRoute"
@@ -1607,14 +1627,23 @@
 							"Version": "2012-10-17",
 							"Statement": [
 								{
+									"Sid": "BootStrapFromS3",
 									"Effect": "Allow",
 									"Action": [
+										"s3:GetObject"
+									],
+									"Resource": "*"
+								},
+								{
+									"Sid": "SDNConnectorFortiView",
+									"Effect": "Allow",
+									"Action": [
+										"ec2:DescribeRegions",
 										"ec2:DescribeInstances",
 										"eks:DescribeCluster",
 										"eks:ListClusters",
 										"inspector:DescribeFindings",
-										"inspector:ListFindings",
-										"s3:GetObject"
+										"inspector:ListFindings"
 									],
 									"Resource": "*"
 								}
@@ -2082,7 +2111,7 @@
 								"        )",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
-								"        responseData = {'msg':'error'}",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
 								"",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['Images'] != []:",
@@ -2096,8 +2125,8 @@
 								"        responseData = {'ami': ami_dict[ami_list[0]]}",
 								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
 								"    else:",
-								"        logger.error('!!--> Unable to find AMI in response! {}'.format(response))",
-								"        responseData = {'msg':'error'}",
+								"        logger.error('!!--> Unable to find AMI {} in describe_images response! {}'.format(event['ResourceProperties']['LicenseType'],resp))",
+								"        responseData = {'msg':'Unable to find AMI {} in describe_images response! {}'.format(event['ResourceProperties']['LicenseType'],resp)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
 								""
 							]
@@ -2112,7 +2141,7 @@
 				},
 				"Timeout": 120,
 				"Handler": "index.handler",
-				"Runtime": "python3.7",
+				"Runtime": "python3.9",
 				"MemorySize": 128
 			}
 		},
@@ -2241,6 +2270,13 @@
 								"set service ALL",
 								"set logtraffic all",
 								"next",
+								"end",
+								"config system sdn-connector",
+								"edit aws-instance-role",
+								"set status enable",
+								"set type aws",
+								"set use-metadata-iam enable",
+								"next",
 								"end\\",
 								"'''",
 								"",
@@ -2262,8 +2298,9 @@
 								"        response = s3.put_object(Body=fgt1_conf, Bucket=event['ResourceProperties']['S3Bucket'], Key='fgt1.txt')",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
-								"        responseData = {'msg':'error'}",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"        return None",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200:",
 								"        fgt1_result = True",
 								"        logger.info('<-- s3 put_object fgt1.txt successful')",
@@ -2272,8 +2309,9 @@
 								"        response = s3.put_object(Body=fgt2_conf, Bucket=event['ResourceProperties']['S3Bucket'], Key='fgt2.txt')",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
-								"        responseData = {'msg':'error'}",
+								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
+								"        return None",
 								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200:",
 								"        fgt2_result = True",
 								"        logger.info('<-- s3 put_object fgt2.txt successful')",
@@ -2297,7 +2335,7 @@
 				},
 				"Timeout": 120,
 				"Handler": "index.handler",
-				"Runtime": "python3.7",
+				"Runtime": "python3.9",
 				"MemorySize": 128
 			}
 		},
