@@ -143,9 +143,10 @@
 		},
 		"InstanceType": {
 			"Type": "String",
-			"Default": "c5.xlarge",
+			"Default": "c6i.xlarge",
 			"Description": "Select the instance type for the FortiGates",
 			"AllowedValues": [
+				"c4.large",
 				"c5.large",
 				"c5.xlarge",
 				"c5.2xlarge",
@@ -164,7 +165,37 @@
 				"c6i.4xlarge",
 				"c6i.8xlarge",
 				"c6i.16xlarge",
-				"c6i.24xlarge"
+				"c6i.24xlarge",
+				"c6in.large",
+				"c6in.xlarge",
+				"c6in.2xlarge",
+				"c6in.4xlarge",
+				"c6in.8xlarge",
+				"c6in.16xlarge",
+				"c6g.large",
+				"c6g.xlarge",
+				"c6g.2xlarge",
+				"c6g.4xlarge",
+				"c6g.8xlarge",
+				"c6g.16xlarge",
+				"c6gn.large",
+				"c6gn.xlarge",
+				"c6gn.2xlarge",
+				"c6gn.4xlarge",
+				"c6gn.8xlarge",
+				"c6gn.16xlarge",
+				"c7g.large",
+				"c7g.xlarge",
+				"c7g.2xlarge",
+				"c7g.4xlarge",
+				"c7g.8xlarge",
+				"c7g.16xlarge",
+				"c7gn.large",
+				"c7gn.xlarge",
+				"c7gn.2xlarge",
+				"c7gn.4xlarge",
+				"c7gn.8xlarge",
+				"c7gn.16xlarge"
 			]
 		},
 		"CIDRForInstanceAccess": {
@@ -194,9 +225,9 @@
 			"Default": "7.0.x",
 			"Description": "Select the verion of FortiOS to use (latest GA AMI will be used)",
 			"AllowedValues": [
-				"6.4.x",
 				"7.0.x",
-				"7.2.x"
+				"7.2.x",
+				"7.4.x"
 			]
 		},
 		"LicenseType": {
@@ -217,18 +248,48 @@
 		}
 	},
 	"Mappings": {
-		"FortiOSAMISearchString": {
+		"FortiOSIntelAMISearchString": {
 			"6.4.x": {
-				"BYOL": "FortiGate-VM64-AWS *(6.4.*)*",
-				"PAYG": "FortiGate-VM64-AWSONDEMAND *(6.4.*)*"
+				"BYOL": "FortiGate-VM64-AWS *(6.4.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"Flex": "FortiGate-VM64-AWS *(6.4.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(6.4.*)*|2wqkpek696qhdeo7lbbjncqli"
 			},
 			"7.0.x": {
-				"BYOL": "FortiGate-VM64-AWS *(7.0.*)*",
-				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.0.*)*"
+				"BYOL": "FortiGate-VM64-AWS *(7.0.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"Flex": "FortiGate-VM64-AWS *(7.0.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.0.*)*|2wqkpek696qhdeo7lbbjncqli"
 			},
 			"7.2.x": {
-				"BYOL": "FortiGate-VM64-AWS *(7.2.*)*",
-				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.2.*)*"
+				"BYOL": "FortiGate-VM64-AWS *(7.2.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"Flex": "FortiGate-VM64-AWS *(7.2.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.2.*)*|2wqkpek696qhdeo7lbbjncqli"
+			},
+			"7.4.x": {
+				"BYOL": "FortiGate-VM64-AWS *(7.4.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"Flex": "FortiGate-VM64-AWS *(7.4.*)*|dlaioq277sglm5mw1y1dmeuqa",
+				"PAYG": "FortiGate-VM64-AWSONDEMAND *(7.4.*)*|2wqkpek696qhdeo7lbbjncqli"
+			}
+		},
+		"FortiOSArmAMISearchString": {
+			"6.4.x": {
+				"BYOL": "FortiGate-VMARM64-AWS *(6.4.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"Flex": "FortiGate-VMARM64-AWS *(6.4.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"PAYG": "FortiGate-VMARM64-AWSONDEMAND *(6.4.*)*|8gc40z1w65qjt61p9ps88057n"
+			},
+			"7.0.x": {
+				"BYOL": "FortiGate-VMARM64-AWS *(7.0.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"Flex": "FortiGate-VMARM64-AWS *(7.0.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"PAYG": "FortiGate-VMARM64-AWSONDEMAND *(7.0.*)*|8gc40z1w65qjt61p9ps88057n"
+			},
+			"7.2.x": {
+				"BYOL": "FortiGate-VMARM64-AWS *(7.2.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"Flex": "FortiGate-VMARM64-AWS *(7.2.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"PAYG": "FortiGate-VMARM64-AWSONDEMAND *(7.2.*)*|8gc40z1w65qjt61p9ps88057n"
+			},
+			"7.4.x": {
+				"BYOL": "FortiGate-VMARM64-AWS *(7.4.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"Flex": "FortiGate-VMARM64-AWS *(7.4.*)*|33ndn84xbrajb9vmu5lxnfpjq",
+				"PAYG": "FortiGate-VMARM64-AWSONDEMAND *(7.4.*)*|8gc40z1w65qjt61p9ps88057n"
 			}
 		}
 	},
@@ -261,22 +322,98 @@
 				}
 			]
 		},
-        "CreateAttachments": {
-            "Fn::Or": [
-                {
-                    "Condition": "CreateTgw"
-                },
-                {
-                    "Condition": "ExistingTGW"
-                }
-            ]
-        },
+		"CreateAttachments": {
+			"Fn::Or": [
+				{
+					"Condition": "CreateTgw"
+				},
+				{
+					"Condition": "ExistingTGW"
+				}
+			]
+		},
 		"LicenseTypeBYOL": {
 			"Fn::Equals": [
 				{
 					"Ref": "LicenseType"
 				},
 				"BYOL"
+			]
+		},
+		"Graviton": {
+			"Fn::Or": [
+				{
+					"Fn::Equals": [
+						{
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										".",
+										{
+											"Ref": "InstanceType"
+										}
+									]
+								}
+							]
+						},
+						"c6g"
+					]
+				},
+				{
+					"Fn::Equals": [
+						{
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										".",
+										{
+											"Ref": "InstanceType"
+										}
+									]
+								}
+							]
+						},
+						"c6gn"
+					]
+				},
+				{
+					"Fn::Equals": [
+						{
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										".",
+										{
+											"Ref": "InstanceType"
+										}
+									]
+								}
+							]
+						},
+						"c7g"
+					]
+				},
+				{
+					"Fn::Equals": [
+						{
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										".",
+										{
+											"Ref": "InstanceType"
+										}
+									]
+								}
+							]
+						},
+						"c7gn"
+					]
+				}
 			]
 		}
 	},
@@ -1058,7 +1195,7 @@
 						"Ref": "TgwAttachSub2"
 					}
 				],
-				"TransitGatewayId":{
+				"TransitGatewayId": {
 					"Ref": "TransitGateway"
 				},
 				"VpcId": {
@@ -2094,39 +2231,41 @@
 								"import json",
 								"logger = logging.getLogger()",
 								"logger.setLevel(logging.INFO)",
-								"ec2 = boto3.client('ec2')",
+								"client = boto3.client('ec2')",
 								"",
 								"def handler(event, context):",
 								"    if event['RequestType'] == 'Create':",
 								"        logger.info('<-- event received: {}'.format(json.dumps(event)))",
+								"        searchString = event['ResourceProperties']['SearchString']",
+								"        productCode =  event['ResourceProperties']['ProductCode']",
 								"    else:",
 								"        responseData = {'msg':'200'}",
 								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
 								"        return None",
 								"",
 								"    try:",
-								"        response = ec2.describe_images(",
-								"            Filters=[{'Name': 'name', 'Values': [event['ResourceProperties']['LicenseType']]}],",
-								"            Owners=['679593333241', '464423754048', '211372476111', '345084742485', '874634375141', '939706979954', '769304176199']",
+								"        resp = client.describe_images(",
+								"            Filters=[{'Name': 'name', 'Values': [searchString]}, {'Name': 'product-code', 'Values': [productCode]}],",
+								"            Owners=['aws-marketplace']",
 								"        )",
 								"    except Exception as error:",
 								"        logger.error('<--!! Exception: {}'.format(error))",
 								"        responseData = {'msg':'Exception: {}'.format(error)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
 								"",
-								"    if response['ResponseMetadata']['HTTPStatusCode'] == 200 and response['Images'] != []:",
+								"    if resp['ResponseMetadata']['HTTPStatusCode'] == 200 and resp['Images'] != []:",
 								"        ami_dict = {}",
 								"        ami_list = []",
-								"        for entry in response['Images']:",
+								"        for entry in resp['Images']:",
 								"            key = entry['CreationDate']",
 								"            ami_dict[key] = entry['ImageId']",
 								"        ami_list = sorted(ami_dict, reverse = True)",
-								"        logger.info('--> found latest AMI: {}, {}'.format(ami_dict[ami_list[0]], ami_list[0]))",
+								"        logger.info('--> found latest AMI: {}, {}, {} {}'.format(ami_dict[ami_list[0]], ami_list[0], searchString, productCode))",
 								"        responseData = {'ami': ami_dict[ami_list[0]]}",
 								"        cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)",
 								"    else:",
-								"        logger.error('!!--> Unable to find AMI {} in describe_images response! {}'.format(event['ResourceProperties']['LicenseType'],resp))",
-								"        responseData = {'msg':'Unable to find AMI {} in describe_images response! {}'.format(event['ResourceProperties']['LicenseType'],resp)}",
+								"        logger.error('!!--> Unable to find AMI {} {} in describe_images response! {}'.format(searchString, productCode, resp))",
+								"        responseData = {'msg':'Unable to find AMI {} {} in describe_images response! {}'.format(searchString, productCode,resp)}",
 								"        cfnresponse.send(event, context, cfnresponse.FAILED, responseData)",
 								""
 							]
@@ -2154,14 +2293,97 @@
 						"Arn"
 					]
 				},
-				"LicenseType": {
-					"Fn::FindInMap": [
-						"FortiOSAMISearchString",
+				"SearchString": {
+					"Fn::If": [
+						"Graviton",
 						{
-							"Ref": "FortiOSVersion"
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										"|",
+										{
+											"Fn::FindInMap": [
+												"FortiOSArmAMISearchString",
+												{
+													"Ref": "FortiOSVersion"
+												},
+												{
+													"Ref": "LicenseType"
+												}
+											]
+										}
+									]
+								}
+							]
 						},
 						{
-							"Ref": "LicenseType"
+							"Fn::Select": [
+								"0",
+								{
+									"Fn::Split": [
+										"|",
+										{
+											"Fn::FindInMap": [
+												"FortiOSIntelAMISearchString",
+												{
+													"Ref": "FortiOSVersion"
+												},
+												{
+													"Ref": "LicenseType"
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				"ProductCode": {
+					"Fn::If": [
+						"Graviton",
+						{
+							"Fn::Select": [
+								"1",
+								{
+									"Fn::Split": [
+										"|",
+										{
+											"Fn::FindInMap": [
+												"FortiOSArmAMISearchString",
+												{
+													"Ref": "FortiOSVersion"
+												},
+												{
+													"Ref": "LicenseType"
+												}
+											]
+										}
+									]
+								}
+							]
+						},
+						{
+							"Fn::Select": [
+								"1",
+								{
+									"Fn::Split": [
+										"|",
+										{
+											"Fn::FindInMap": [
+												"FortiOSIntelAMISearchString",
+												{
+													"Ref": "FortiOSVersion"
+												},
+												{
+													"Ref": "LicenseType"
+												}
+											]
+										}
+									]
+								}
+							]
 						}
 					]
 				}
